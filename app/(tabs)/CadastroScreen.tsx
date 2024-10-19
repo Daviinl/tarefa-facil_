@@ -1,20 +1,51 @@
+// CadastroScreen.tsx
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Utilize o hook useNavigation
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { auth } from './firebaseConfig'; // Importando o auth
+
+const [successMessage, setSuccessMessage] = useState<string | null>(null); // Estado para a mensagem de sucesso
 
 const CadastroScreen: React.FC = () => {
-  const navigation = useNavigation(); // Obtenha a prop navigation
+  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [senhaConfirmada, setSenhaConfirmada] = useState('');
 
-  const handleCadastro = () => {
-    console.log('Usuário cadastrado:', email, senha);
-    // Implementação da lógica de cadastro
+  const handleCadastro = async () => {
+    if (senha !== senhaConfirmada) {
+      console.error("As senhas não coincidem!");
+      return;
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+      console.log('Usuário cadastrado:', userCredential.user);
+      setSuccessMessage("Cadastro realizado com Sucesso"); // Define a mensagem de sucesso
+          setTimeout(() => {
+            setSuccessMessage(null); // Remove a mensagem após 3 segundos
+          }, 3000);
+      const token = await userCredential.user.getIdToken();
+      await AsyncStorage.setItem('userToken', token);
+
+    
+    } catch (error) {
+      console.error('Erro ao cadastrar usuário:', error);
+    }
   };
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backToLoginContainer}>
+        <Ionicons name="arrow-back" size={20} color="#0000FF" style={styles.backIcon} />
+        <Text style={styles.backToLoginText}>Voltar para Login</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>Cadastro</Text>
+
       <TextInput
         style={styles.input}
         placeholder="Digite seu e-mail"
@@ -31,73 +62,77 @@ const CadastroScreen: React.FC = () => {
         secureTextEntry={true}
         autoCapitalize="none"
       />
-
       <TextInput
         style={styles.input}
         placeholder="Confirme sua senha"
-        value={senha}
-        onChangeText={setSenha}
+        value={senhaConfirmada}
+        onChangeText={setSenhaConfirmada}
         secureTextEntry={true}
         autoCapitalize="none"
       />
 
-      {/* Botão de Cadastrar */}
       <TouchableOpacity style={styles.button} onPress={handleCadastro}>
         <Text style={styles.buttonText}>Cadastrar</Text>
       </TouchableOpacity>
-
-      {/* Botão de Voltar para Login */}
-      <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={() => navigation.goBack()}>
-        <Text style={[styles.buttonText, styles.secondaryButtonText]}>Voltar para Login</Text>
-      </TouchableOpacity>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F3F3FF",
-    justifyContent: 'flex-start', // Mover para o topo
-    alignItems: 'center',
-    padding: 16,
-    paddingTop: 80, // Espaçamento do topo
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-  },
-  input: {
-    width: 300,
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 5,
-    paddingHorizontal: 20,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  button: {
-    backgroundColor: '#6200EE', // Cor de fundo roxa
-    width: 300,
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 10, // Espaçamento entre os botões
-  },
-  buttonText: {
-    color: '#FFF', // Cor do texto
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  secondaryButton: {
-    backgroundColor: '#FFF', // Cor de fundo branca para o botão secundário
-    borderWidth: 1,
-    borderColor: '#6200EE', // Cor da borda roxa
-  },
-  secondaryButtonText: {
-    color: '#6200EE', // Texto roxo para o botão secundário
-  },
-});
+    container: {
+      flex: 1,
+      backgroundColor: "#F3F3FF",
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+      padding: 16,
+      paddingTop: 80,
+    },
+    backToLoginContainer: {
+      position: 'absolute',
+      top: 40,
+      left: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 10,
+    },
+    backIcon: {
+      marginRight: 5,
+    },
+    backToLoginText: {
+      color: '#0000FF',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    title: {
+      fontSize: 24,
+      marginTop: 30,
+      marginBottom: 20,
+    },
+    input: {
+      width: 300,
+      height: 50,
+      backgroundColor: '#FFF',
+      borderRadius: 5,
+      paddingHorizontal: 20,
+      marginVertical: 10,
+      borderWidth: 1,
+      borderColor: '#ccc',
+    },
+    button: {
+      backgroundColor: '#00008B',
+      width: 300,
+      padding: 15,
+      borderRadius: 5,
+      alignItems: 'center',
+      marginVertical: 10,
+    },
+    buttonText: {
+      color: '#FFF',
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+  }
+  
+);
 
 export default CadastroScreen;
